@@ -1,15 +1,4 @@
-# at the top of your YAML file 
-- task: AzureFunctionApp@1
-  inputs:
-    azureSubscription: 'pkjserviceConnectionName'
-    appType: 'functionApp'
-    appName: 'pkj-app-name'
-    deployToSlotOrASE: true
-    resourceGroupName: 'myapp-rg'
-    slotName: 'production'
-    package: '$(System.DefaultWorkingDirectory)/**/*.zip'
-    deploymentMethod: 'auto'
-# set some variables that you'll need when you deploy
+
 variables:
   # the name of the service connection that you created above
   serviceConnectionToAzure: name-of-your-service-connection
@@ -17,4 +6,24 @@ variables:
   # when you created the web app using the Azure CLI
   appName: pkj-app-name
   
-# ...
+# add these as the last steps
+# to deploy to your app service
+- task: CopyFiles@2
+  displayName: Copy Files
+  inputs:
+    SourceFolder: $(system.defaultworkingdirectory)/target/azure-functions/
+    Contents: '**'
+    TargetFolder: $(build.artifactstagingdirectory)   
+
+- task: PublishBuildArtifacts@1
+  displayName: Publish Artifact
+  inputs:
+    PathtoPublish: $(build.artifactstagingdirectory)    
+
+- task: AzureFunctionApp@1
+  displayName: Azure Function App deploy
+  inputs:
+    azureSubscription: $(serviceConnectionToAzure)
+    appType: functionApp
+    appName: $(appName)
+    package: $(build.artifactstagingdirectory)
